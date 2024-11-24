@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ashez2000/rssaggr/internal/auth"
 	"github.com/ashez2000/rssaggr/internal/database"
 	"github.com/google/uuid"
 )
@@ -34,6 +35,7 @@ func (app *Application) createUser(w http.ResponseWriter, r *http.Request) {
 	user, err := app.DB.CreateUser(r.Context(), database.CreateUserParams{
 		ID:        uuid.New(),
 		Username:  params.Username,
+		ApiKey:    uuid.New().String(),
 		CreatedAt: time.Now().UTC(),
 	})
 
@@ -44,4 +46,20 @@ func (app *Application) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, 201, user)
+}
+
+func (app *Application) getUser(w http.ResponseWriter, r *http.Request) {
+	apiKey, err := auth.GetApiKey(r)
+	if err != nil {
+		writeJSON(w, 403, err)
+		return
+	}
+
+	user, err := app.DB.GetUserByAPIKey(r.Context(), apiKey)
+	if err != nil {
+		writeJSON(w, 403, err)
+		return
+	}
+
+	writeJSON(w, 200, user)
 }

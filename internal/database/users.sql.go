@@ -13,20 +13,47 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
-insert into users (id, username, created_at)
-values ($1, $2, $3)
-returning id, username, created_at
+insert into users (id, username, api_key, created_at)
+values ($1, $2, $3, $4)
+returning id, username, api_key, created_at
 `
 
 type CreateUserParams struct {
 	ID        uuid.UUID
 	Username  string
+	ApiKey    string
 	CreatedAt time.Time
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser, arg.ID, arg.Username, arg.CreatedAt)
+	row := q.db.QueryRowContext(ctx, createUser,
+		arg.ID,
+		arg.Username,
+		arg.ApiKey,
+		arg.CreatedAt,
+	)
 	var i User
-	err := row.Scan(&i.ID, &i.Username, &i.CreatedAt)
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.ApiKey,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getUserByAPIKey = `-- name: GetUserByAPIKey :one
+select id, username, api_key, created_at from users where api_key = $1
+`
+
+func (q *Queries) GetUserByAPIKey(ctx context.Context, apiKey string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByAPIKey, apiKey)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.ApiKey,
+		&i.CreatedAt,
+	)
 	return i, err
 }

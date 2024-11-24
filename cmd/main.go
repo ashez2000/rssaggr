@@ -42,6 +42,7 @@ func main() {
 
 	// API routes
 	router.Get("/", app.hello)
+	router.Get("/users", app.getUser)
 	router.Post("/users", app.createUser)
 
 	srv := &http.Server{
