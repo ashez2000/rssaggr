@@ -1,4 +1,4 @@
--- +goose up
+-- +goose Up
 
 create table users (
     id uuid primary key,
@@ -6,6 +6,6 @@ create table users (
     created_at timestamp not null
 );
 
--- +goose down
+-- +goose Down
 
 drop table users;

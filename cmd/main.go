@@ -1,22 +1,36 @@
 package main
 
 import (
+	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 
+	"github.com/ashez2000/rssaggr/internal/database"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {
 	godotenv.Load()
 
-	port := os.Getenv("PORT")
+	port := loadEnv("PORT")
+	databaseURL := loadEnv("DATABASE_URL")
+
+	conn, err := sql.Open("postgres", databaseURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	app := Application{
+		DB: database.New(conn),
+	}
 
 	router := chi.NewRouter()
-
 	router.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -26,7 +40,7 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	router.Get("/", hello)
+	router.Get("/", app.hello)
 
 	srv := &http.Server{
 		Handler: router,
@@ -34,12 +48,17 @@ func main() {
 	}
 
 	log.Println("Listening on port", port)
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func hello(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, "Hello, world!")
+func loadEnv(name string) string {
+	value := os.Getenv(name)
+	if value == "" {
+		panic(fmt.Sprintf("%v undefined", name))
+	}
+
+	return value
 }
