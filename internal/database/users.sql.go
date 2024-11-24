@@ -7,7 +7,6 @@ package database
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,7 +20,7 @@ returning id, username, created_at
 
 type CreateUserParams struct {
 	ID        uuid.UUID
-	Username  sql.NullString
+	Username  string
 	CreatedAt time.Time
 }
 

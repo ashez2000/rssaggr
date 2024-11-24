@@ -2,7 +2,7 @@
 
 create table users (
     id uuid primary key,
-    username text unique,
+    username text unique not null,
     created_at timestamp not null
 );
 

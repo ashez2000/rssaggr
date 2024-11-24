@@ -40,7 +40,9 @@ func main() {
 		MaxAge:           300,
 	}))
 
+	// API routes
 	router.Get("/", app.hello)
+	router.Post("/users", app.createUser)
 
 	srv := &http.Server{
 		Handler: router,
