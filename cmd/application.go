@@ -102,6 +102,37 @@ func (app *Application) getFeeds(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 201, feed)
 }
 
+// createFeedFollow handler
+// path: POST /feed_follows
+func (app *Application) createFeedFollow(w http.ResponseWriter, r *http.Request, user database.User) {
+	type Params struct {
+		FeedID uuid.UUID `json:"feed_id"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := Params{}
+	err := decoder.Decode(&params)
+	if err != nil {
+		writeJSON(w, 400, "Error parsing body")
+		return
+	}
+
+	feed_follow, err := app.DB.CreateFeedFollow(r.Context(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now().UTC(),
+		FeedID:    params.FeedID,
+		UserID:    user.ID,
+	})
+
+	if err != nil {
+		log.Println(err)
+		writeJSON(w, 500, "Error creating feed follow")
+		return
+	}
+
+	writeJSON(w, 201, feed_follow)
+}
+
 type AuthedHandler func(http.ResponseWriter, *http.Request, database.User)
 
 // TODO: reafactor middleware
