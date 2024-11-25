@@ -89,6 +89,19 @@ func (app *Application) createFeed(w http.ResponseWriter, r *http.Request, user 
 	writeJSON(w, 201, feed)
 }
 
+// getFeeds handler
+// path: GET /feeds
+func (app *Application) getFeeds(w http.ResponseWriter, r *http.Request) {
+	feed, err := app.DB.GetFeeds(r.Context())
+	if err != nil {
+		log.Println(err)
+		writeJSON(w, 500, "Error getting feeds")
+		return
+	}
+
+	writeJSON(w, 201, feed)
+}
+
 type AuthedHandler func(http.ResponseWriter, *http.Request, database.User)
 
 // TODO: reafactor middleware
