@@ -48,18 +48,27 @@ func (app *Application) createUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 201, user)
 }
 
-func (app *Application) getUser(w http.ResponseWriter, r *http.Request) {
-	apiKey, err := auth.GetApiKey(r)
-	if err != nil {
-		writeJSON(w, 403, err)
-		return
-	}
-
-	user, err := app.DB.GetUserByAPIKey(r.Context(), apiKey)
-	if err != nil {
-		writeJSON(w, 403, err)
-		return
-	}
-
+func (app *Application) getUser(w http.ResponseWriter, r *http.Request, user database.User) {
 	writeJSON(w, 200, user)
+}
+
+type AuthedHandler func(http.ResponseWriter, *http.Request, database.User)
+
+// TODO: reafactor middleware
+func (app *Application) authMiddleware(handler AuthedHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		apiKey, err := auth.GetApiKey(r)
+		if err != nil {
+			writeJSON(w, 403, err)
+			return
+		}
+
+		user, err := app.DB.GetUserByAPIKey(r.Context(), apiKey)
+		if err != nil {
+			writeJSON(w, 403, err)
+			return
+		}
+
+		handler(w, r, user)
+	}
 }
