@@ -133,6 +133,20 @@ func (app *Application) createFeedFollow(w http.ResponseWriter, r *http.Request,
 	writeJSON(w, 201, feed_follow)
 }
 
+// getFeedFollows handler
+//
+// path: GET /feed-follows
+func (app *Application) getFeedFollows(w http.ResponseWriter, r *http.Request, user database.User) {
+	feed_follows, err := app.DB.GetFeedFollows(r.Context(), user.ID)
+	if err != nil {
+		log.Println(err)
+		writeJSON(w, 500, "Error getting feed_follows")
+		return
+	}
+
+	writeJSON(w, 200, feed_follows)
+}
+
 type AuthedHandler func(http.ResponseWriter, *http.Request, database.User)
 
 // TODO: reafactor middleware
