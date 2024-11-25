@@ -8,6 +8,7 @@ import (
 
 	"github.com/ashez2000/rssaggr/internal/auth"
 	"github.com/ashez2000/rssaggr/internal/database"
+	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 )
 
@@ -145,6 +146,29 @@ func (app *Application) getFeedFollows(w http.ResponseWriter, r *http.Request, u
 	}
 
 	writeJSON(w, 200, feed_follows)
+}
+
+// deleteFeedFollow handler
+//
+// path: DELETE /feed-follows
+func (app *Application) deleteFeedFollow(w http.ResponseWriter, r *http.Request, user database.User) {
+	feedID, err := uuid.Parse(chi.URLParam(r, "feedID"))
+	if err != nil {
+		writeJSON(w, 500, "Error parsing feed follow id")
+		return
+	}
+
+	err = app.DB.DeleteFeedFollow(r.Context(), database.DeleteFeedFollowParams{
+		FeedID: feedID,
+		UserID: user.ID,
+	})
+	if err != nil {
+		log.Println(err)
+		writeJSON(w, 500, "Error getting feed_follows")
+		return
+	}
+
+	writeJSON(w, 200, "feed follow removed")
 }
 
 type AuthedHandler func(http.ResponseWriter, *http.Request, database.User)
