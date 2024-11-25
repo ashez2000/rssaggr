@@ -13,8 +13,8 @@ import (
 )
 
 const createFeed = `-- name: CreateFeed :one
-insert into feeds (id, name, url, created_at)
-values ($1, $2, $3, $4)
+insert into feeds (id, name, url, created_at, user_id)
+values ($1, $2, $3, $4, $5)
 returning id, name, url, created_at, user_id
 `
 
@@ -23,6 +23,7 @@ type CreateFeedParams struct {
 	Name      string
 	Url       string
 	CreatedAt time.Time
+	UserID    uuid.UUID
 }
 
 func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, error) {
@@ -31,6 +32,7 @@ func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, e
 		arg.Name,
 		arg.Url,
 		arg.CreatedAt,
+		arg.UserID,
 	)
 	var i Feed
 	err := row.Scan(

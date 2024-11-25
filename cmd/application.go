@@ -19,6 +19,8 @@ func (app *Application) hello(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, "Hello, world!")
 }
 
+// createUser handler
+// path: POST /users
 func (app *Application) createUser(w http.ResponseWriter, r *http.Request) {
 	type Params struct {
 		Username string `json:"username"`
@@ -48,8 +50,43 @@ func (app *Application) createUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 201, user)
 }
 
+// getUser handler
+// path: GET /users
 func (app *Application) getUser(w http.ResponseWriter, r *http.Request, user database.User) {
 	writeJSON(w, 200, user)
+}
+
+// createFeed handler
+// path: POST /feeds
+func (app *Application) createFeed(w http.ResponseWriter, r *http.Request, user database.User) {
+	type Params struct {
+		Name string `json:"name"`
+		URL  string `json:"url"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := Params{}
+	err := decoder.Decode(&params)
+	if err != nil {
+		writeJSON(w, 400, "Error parsing body")
+		return
+	}
+
+	feed, err := app.DB.CreateFeed(r.Context(), database.CreateFeedParams{
+		ID:        uuid.New(),
+		Name:      params.Name,
+		Url:       params.URL,
+		CreatedAt: time.Now().UTC(),
+		UserID:    user.ID,
+	})
+
+	if err != nil {
+		log.Println(err)
+		writeJSON(w, 500, "Error creating feed")
+		return
+	}
+
+	writeJSON(w, 201, feed)
 }
 
 type AuthedHandler func(http.ResponseWriter, *http.Request, database.User)

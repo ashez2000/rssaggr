@@ -44,6 +44,7 @@ func main() {
 	router.Get("/", app.hello)
 	router.Get("/users", app.authMiddleware(app.getUser))
 	router.Post("/users", app.createUser)
+	router.Post("/feeds", app.authMiddleware(app.createFeed))
 
 	srv := &http.Server{
 		Handler: router,
