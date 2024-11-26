@@ -1,10 +1,16 @@
 package rss
 
 import (
+	"context"
+	"database/sql"
 	"encoding/xml"
 	"io"
+	"log"
 	"net/http"
+	"sync"
 	"time"
+
+	"github.com/ashez2000/rssaggr/internal/database"
 )
 
 type RSSFeed struct {
@@ -47,4 +53,44 @@ func FetchRSSFeed(url string) (RSSFeed, error) {
 	}
 
 	return rssFeed, nil
+}
+
+func AggrRSSFeeds(db *database.Queries, concurrency int, timeBetweenRequest time.Duration) {
+	log.Println("Running AggrRSSFeeds")
+	ticker := time.NewTicker(timeBetweenRequest)
+	for ; ; <-ticker.C {
+		feeds, err := db.GetNextFeedsToFetch(context.Background(), int32(concurrency))
+		if err != nil {
+			log.Println("Error fetching feeds from database", err)
+			continue
+		}
+
+		wg := &sync.WaitGroup{}
+		for _, feed := range feeds {
+			wg.Add(1)
+			go fetchRSSFeed(wg, db, feed)
+		}
+		wg.Wait()
+	}
+}
+
+func fetchRSSFeed(wg *sync.WaitGroup, db *database.Queries, feed database.Feed) {
+	defer wg.Done()
+
+	rssFeed, err := FetchRSSFeed(feed.Url)
+	if err != nil {
+		log.Println(err)
+	}
+
+	_, err = db.UpdateLastFetchedAt(context.Background(), database.UpdateLastFetchedAtParams{
+		ID: feed.ID,
+		LastFetchedAt: sql.NullTime{
+			Time: time.Now().UTC(),
+		},
+	})
+	if err != nil {
+		log.Println("Error updating last_fetched_at", err)
+	}
+
+	log.Printf("Feed %s fetched, %v posts found", feed.Name, len(rssFeed.Channel.Item))
 }

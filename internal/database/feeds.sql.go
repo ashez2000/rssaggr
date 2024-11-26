@@ -81,24 +81,40 @@ func (q *Queries) GetFeeds(ctx context.Context) ([]Feed, error) {
 	return items, nil
 }
 
-const getNextFeedToFetch = `-- name: GetNextFeedToFetch :one
+const getNextFeedsToFetch = `-- name: GetNextFeedsToFetch :many
 select id, name, url, created_at, user_id, last_fetched_at from feeds
 order by last_fetched_at asc nulls first
-limit 1
+limit $1
 `
 
-func (q *Queries) GetNextFeedToFetch(ctx context.Context) (Feed, error) {
-	row := q.db.QueryRowContext(ctx, getNextFeedToFetch)
-	var i Feed
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Url,
-		&i.CreatedAt,
-		&i.UserID,
-		&i.LastFetchedAt,
-	)
-	return i, err
+func (q *Queries) GetNextFeedsToFetch(ctx context.Context, limit int32) ([]Feed, error) {
+	rows, err := q.db.QueryContext(ctx, getNextFeedsToFetch, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Feed
+	for rows.Next() {
+		var i Feed
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Url,
+			&i.CreatedAt,
+			&i.UserID,
+			&i.LastFetchedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateLastFetchedAt = `-- name: UpdateLastFetchedAt :one

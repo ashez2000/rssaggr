@@ -6,8 +6,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/ashez2000/rssaggr/internal/database"
+	"github.com/ashez2000/rssaggr/internal/rss"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
@@ -26,9 +28,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	db := database.New(conn)
 	app := Application{
-		DB: database.New(conn),
+		DB: db,
 	}
+
+	go rss.AggrRSSFeeds(db, 3, 10*time.Second)
 
 	router := chi.NewRouter()
 	router.Use(cors.Handler(cors.Options{

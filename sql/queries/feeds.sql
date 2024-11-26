@@ -6,10 +6,10 @@ returning *;
 -- name: GetFeeds :many
 select * from feeds;
 
--- name: GetNextFeedToFetch :one
+-- name: GetNextFeedsToFetch :many
 select * from feeds
 order by last_fetched_at asc nulls first
-limit 1;
+limit $1;
 
 -- name: UpdateLastFetchedAt :one
 update feeds set last_fetched_at = $1
