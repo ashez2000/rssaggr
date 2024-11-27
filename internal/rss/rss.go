@@ -7,10 +7,12 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/ashez2000/rssaggr/internal/database"
+	"github.com/google/uuid"
 )
 
 type RSSFeed struct {
@@ -90,6 +92,37 @@ func fetchRSSFeed(wg *sync.WaitGroup, db *database.Queries, feed database.Feed) 
 	})
 	if err != nil {
 		log.Println("Error updating last_fetched_at", err)
+	}
+
+	for _, item := range rssFeed.Channel.Item {
+		description := sql.NullString{}
+		if item.Description != "" {
+			description.String = item.Description
+			description.Valid = true
+		}
+
+		publishedAt, err := time.Parse(time.RFC1123Z, item.PubDate)
+		if err != nil {
+			log.Println("error parsing published at", err)
+		}
+
+		_, err = db.CreatePost(context.Background(), database.CreatePostParams{
+			ID:          uuid.New(),
+			Title:       item.Title,
+			Description: description,
+			Url:         item.Link,
+			PublishedAt: publishedAt,
+			CreatedAt:   time.Now().UTC(),
+			FeedID:      feed.ID,
+		})
+
+		if err != nil {
+			// print error if its not an duplicate key error
+			if !strings.Contains(err.Error(), "duplicate key") {
+				log.Println("error creating post")
+			}
+		}
+
 	}
 
 	log.Printf("Feed %s fetched, %v posts found", feed.Name, len(rssFeed.Channel.Item))
