@@ -171,6 +171,23 @@ func (app *Application) deleteFeedFollow(w http.ResponseWriter, r *http.Request,
 	writeJSON(w, 200, "feed follow removed")
 }
 
+// getPostsForUser handler
+//
+// path: GET /posts
+func (app *Application) getPostsForUser(w http.ResponseWriter, r *http.Request, user database.User) {
+	posts, err := app.DB.GetPostsForUser(r.Context(), database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit:  10,
+	})
+	if err != nil {
+		log.Println(err)
+		writeJSON(w, 500, "error getting posts")
+		return
+	}
+
+	writeJSON(w, 200, posts)
+}
+
 type AuthedHandler func(http.ResponseWriter, *http.Request, database.User)
 
 // TODO: reafactor middleware
