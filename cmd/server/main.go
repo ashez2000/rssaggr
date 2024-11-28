@@ -30,8 +30,8 @@ func main() {
 	}
 
 	db := database.New(conn)
-	app := Application{
-		DB: db,
+	app := application{
+		store: db,
 	}
 
 	go rss.AggrRSSFeeds(db, 3, 10*time.Second)

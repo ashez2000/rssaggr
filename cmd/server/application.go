@@ -12,17 +12,17 @@ import (
 	"github.com/google/uuid"
 )
 
-type Application struct {
-	DB *database.Queries
+type application struct {
+	store *database.Queries
 }
 
-func (app *Application) hello(w http.ResponseWriter, r *http.Request) {
+func (app *application) hello(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, "Hello, world!")
 }
 
 // createUser handler
 // path: POST /users
-func (app *Application) createUser(w http.ResponseWriter, r *http.Request) {
+func (app *application) createUser(w http.ResponseWriter, r *http.Request) {
 	type Params struct {
 		Username string `json:"username"`
 	}
@@ -35,7 +35,7 @@ func (app *Application) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := app.DB.CreateUser(r.Context(), database.CreateUserParams{
+	user, err := app.store.CreateUser(r.Context(), database.CreateUserParams{
 		ID:        uuid.New(),
 		Username:  params.Username,
 		ApiKey:    uuid.New().String(),
@@ -53,13 +53,13 @@ func (app *Application) createUser(w http.ResponseWriter, r *http.Request) {
 
 // getUser handler
 // path: GET /users
-func (app *Application) getUser(w http.ResponseWriter, r *http.Request, user database.User) {
+func (app *application) getUser(w http.ResponseWriter, r *http.Request, user database.User) {
 	writeJSON(w, 200, user)
 }
 
 // createFeed handler
 // path: POST /feeds
-func (app *Application) createFeed(w http.ResponseWriter, r *http.Request, user database.User) {
+func (app *application) createFeed(w http.ResponseWriter, r *http.Request, user database.User) {
 	type Params struct {
 		Name string `json:"name"`
 		URL  string `json:"url"`
@@ -73,7 +73,7 @@ func (app *Application) createFeed(w http.ResponseWriter, r *http.Request, user 
 		return
 	}
 
-	feed, err := app.DB.CreateFeed(r.Context(), database.CreateFeedParams{
+	feed, err := app.store.CreateFeed(r.Context(), database.CreateFeedParams{
 		ID:        uuid.New(),
 		Name:      params.Name,
 		Url:       params.URL,
@@ -92,8 +92,8 @@ func (app *Application) createFeed(w http.ResponseWriter, r *http.Request, user 
 
 // getFeeds handler
 // path: GET /feeds
-func (app *Application) getFeeds(w http.ResponseWriter, r *http.Request) {
-	feed, err := app.DB.GetFeeds(r.Context())
+func (app *application) getFeeds(w http.ResponseWriter, r *http.Request) {
+	feed, err := app.store.GetFeeds(r.Context())
 	if err != nil {
 		log.Println(err)
 		writeJSON(w, 500, "Error getting feeds")
@@ -105,7 +105,7 @@ func (app *Application) getFeeds(w http.ResponseWriter, r *http.Request) {
 
 // createFeedFollow handler
 // path: POST /feed_follows
-func (app *Application) createFeedFollow(w http.ResponseWriter, r *http.Request, user database.User) {
+func (app *application) createFeedFollow(w http.ResponseWriter, r *http.Request, user database.User) {
 	type Params struct {
 		FeedID uuid.UUID `json:"feed_id"`
 	}
@@ -118,7 +118,7 @@ func (app *Application) createFeedFollow(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	feed_follow, err := app.DB.CreateFeedFollow(r.Context(), database.CreateFeedFollowParams{
+	feed_follow, err := app.store.CreateFeedFollow(r.Context(), database.CreateFeedFollowParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now().UTC(),
 		FeedID:    params.FeedID,
@@ -137,8 +137,8 @@ func (app *Application) createFeedFollow(w http.ResponseWriter, r *http.Request,
 // getFeedFollows handler
 //
 // path: GET /feed-follows
-func (app *Application) getFeedFollows(w http.ResponseWriter, r *http.Request, user database.User) {
-	feed_follows, err := app.DB.GetFeedFollows(r.Context(), user.ID)
+func (app *application) getFeedFollows(w http.ResponseWriter, r *http.Request, user database.User) {
+	feed_follows, err := app.store.GetFeedFollows(r.Context(), user.ID)
 	if err != nil {
 		log.Println(err)
 		writeJSON(w, 500, "Error getting feed_follows")
@@ -151,14 +151,14 @@ func (app *Application) getFeedFollows(w http.ResponseWriter, r *http.Request, u
 // deleteFeedFollow handler
 //
 // path: DELETE /feed-follows
-func (app *Application) deleteFeedFollow(w http.ResponseWriter, r *http.Request, user database.User) {
+func (app *application) deleteFeedFollow(w http.ResponseWriter, r *http.Request, user database.User) {
 	feedID, err := uuid.Parse(chi.URLParam(r, "feedID"))
 	if err != nil {
 		writeJSON(w, 500, "Error parsing feed follow id")
 		return
 	}
 
-	err = app.DB.DeleteFeedFollow(r.Context(), database.DeleteFeedFollowParams{
+	err = app.store.DeleteFeedFollow(r.Context(), database.DeleteFeedFollowParams{
 		FeedID: feedID,
 		UserID: user.ID,
 	})
@@ -174,8 +174,8 @@ func (app *Application) deleteFeedFollow(w http.ResponseWriter, r *http.Request,
 // getPostsForUser handler
 //
 // path: GET /posts
-func (app *Application) getPostsForUser(w http.ResponseWriter, r *http.Request, user database.User) {
-	posts, err := app.DB.GetPostsForUser(r.Context(), database.GetPostsForUserParams{
+func (app *application) getPostsForUser(w http.ResponseWriter, r *http.Request, user database.User) {
+	posts, err := app.store.GetPostsForUser(r.Context(), database.GetPostsForUserParams{
 		UserID: user.ID,
 		Limit:  10,
 	})
@@ -191,7 +191,7 @@ func (app *Application) getPostsForUser(w http.ResponseWriter, r *http.Request, 
 type AuthedHandler func(http.ResponseWriter, *http.Request, database.User)
 
 // TODO: reafactor middleware
-func (app *Application) authMiddleware(handler AuthedHandler) http.HandlerFunc {
+func (app *application) authMiddleware(handler AuthedHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		apiKey, err := auth.GetApiKey(r)
 		if err != nil {
@@ -199,7 +199,7 @@ func (app *Application) authMiddleware(handler AuthedHandler) http.HandlerFunc {
 			return
 		}
 
-		user, err := app.DB.GetUserByAPIKey(r.Context(), apiKey)
+		user, err := app.store.GetUserByAPIKey(r.Context(), apiKey)
 		if err != nil {
 			writeJSON(w, 403, err)
 			return

@@ -57,11 +57,11 @@ func FetchRSSFeed(url string) (RSSFeed, error) {
 	return rssFeed, nil
 }
 
-func AggrRSSFeeds(db *database.Queries, concurrency int, timeBetweenRequest time.Duration) {
+func AggrRSSFeeds(store *database.Queries, concurrency int, timeBetweenRequest time.Duration) {
 	log.Println("Running AggrRSSFeeds")
 	ticker := time.NewTicker(timeBetweenRequest)
 	for ; ; <-ticker.C {
-		feeds, err := db.GetNextFeedsToFetch(context.Background(), int32(concurrency))
+		feeds, err := store.GetNextFeedsToFetch(context.Background(), int32(concurrency))
 		if err != nil {
 			log.Println("Error fetching feeds from database", err)
 			continue
@@ -70,13 +70,13 @@ func AggrRSSFeeds(db *database.Queries, concurrency int, timeBetweenRequest time
 		wg := &sync.WaitGroup{}
 		for _, feed := range feeds {
 			wg.Add(1)
-			go fetchRSSFeed(wg, db, feed)
+			go fetchRSSFeed(wg, store, feed)
 		}
 		wg.Wait()
 	}
 }
 
-func fetchRSSFeed(wg *sync.WaitGroup, db *database.Queries, feed database.Feed) {
+func fetchRSSFeed(wg *sync.WaitGroup, store *database.Queries, feed database.Feed) {
 	defer wg.Done()
 
 	rssFeed, err := FetchRSSFeed(feed.Url)
@@ -84,7 +84,7 @@ func fetchRSSFeed(wg *sync.WaitGroup, db *database.Queries, feed database.Feed) 
 		log.Println(err)
 	}
 
-	_, err = db.UpdateLastFetchedAt(context.Background(), database.UpdateLastFetchedAtParams{
+	_, err = store.UpdateLastFetchedAt(context.Background(), database.UpdateLastFetchedAtParams{
 		ID: feed.ID,
 		LastFetchedAt: sql.NullTime{
 			Time: time.Now().UTC(),
@@ -106,7 +106,7 @@ func fetchRSSFeed(wg *sync.WaitGroup, db *database.Queries, feed database.Feed) 
 			log.Println("error parsing published at", err)
 		}
 
-		_, err = db.CreatePost(context.Background(), database.CreatePostParams{
+		_, err = store.CreatePost(context.Background(), database.CreatePostParams{
 			ID:          uuid.New(),
 			Title:       item.Title,
 			Description: description,
