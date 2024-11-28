@@ -12,7 +12,10 @@ The API aggregate/fetches the RSS feed posts in the background.
 ```bash
 cp .env.example .env
 
-# TODO: add build script
+# build: creates server binary "/bin/server"
+make build
+
+# start server
 go run ./cmd/server/*.go
 ```
 
