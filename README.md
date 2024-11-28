@@ -13,7 +13,7 @@ The API aggregate/fetches the RSS feed posts in the background.
 cp .env.example .env
 
 # TODO: add build script
-go run ./cmd/*.go
+go run ./cmd/server/*.go
 ```
 
 ## migration
