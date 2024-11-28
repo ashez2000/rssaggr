@@ -11,6 +11,7 @@ import (
 	"github.com/ashez2000/rssaggr/internal/database"
 	"github.com/ashez2000/rssaggr/internal/rss"
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
 
@@ -36,6 +37,15 @@ func main() {
 	go rss.AggrRSSFeeds(db, 3, 10*time.Second)
 
 	router := chi.NewRouter()
+
+	// base middlewares
+	router.Use(middleware.Logger)
+	router.Use(middleware.RequestID)
+	router.Use(middleware.RealIP)
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.Timeout(30 * time.Second))
+
 	router.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
